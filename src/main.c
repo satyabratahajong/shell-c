@@ -3,7 +3,7 @@
 #include <string.h>
 
 int main(void) {
-    // Disable output buffering so prompts and messages print immediately
+    // Disable output buffering so prompts print immediately
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
 
@@ -13,20 +13,25 @@ int main(void) {
         // Step 1: Print the prompt
         printf("$ ");
 
-        // Step 2: Read input from standard input
+        // Step 2: Read input
         if (fgets(input, sizeof(input), stdin) == NULL) {
-            break; // Exit loop on EOF (Ctrl+D / end of pipe)
+            break; // Exit loop on EOF
         }
 
         // Remove trailing newline character (\n)
         input[strcspn(input, "\n")] = '\0';
 
-        // Ignore empty input lines (pressing enter on empty prompt)
+        // Ignore empty input lines
         if (strlen(input) == 0) {
             continue;
         }
 
-        // Step 3: Print command not found error message
+        // Step 3: Check for the 'exit' builtin command
+        if (strcmp(input, "exit") == 0 || strcmp(input, "exit 0") == 0) {
+            return 0; // Terminate the shell with exit code 0
+        }
+
+        // Step 4: Handle unrecognized commands
         printf("%s: command not found\n", input);
     }
 
