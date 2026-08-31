@@ -10,12 +10,12 @@ int main(void) {
     char input[1024];
 
     while (1) {
-        // Step 1: Print the prompt
+        // Step 1: Print prompt
         printf("$ ");
 
         // Step 2: Read input
         if (fgets(input, sizeof(input), stdin) == NULL) {
-            break; // Exit loop on EOF
+            break; // Exit on EOF
         }
 
         // Remove trailing newline character (\n)
@@ -26,12 +26,22 @@ int main(void) {
             continue;
         }
 
-        // Step 3: Check for the 'exit' builtin command
+        // Step 3: Handle 'exit' builtin
         if (strcmp(input, "exit") == 0 || strcmp(input, "exit 0") == 0) {
-            return 0; // Terminate the shell with exit code 0
+            return 0;
         }
 
-        // Step 4: Handle unrecognized commands
+        // Step 4: Handle 'echo' builtin
+        if (strcmp(input, "echo") == 0) {
+            printf("\n");
+            continue;
+        } else if (strncmp(input, "echo ", 5) == 0) {
+            // Print everything after "echo " followed by a newline
+            printf("%s\n", input + 5);
+            continue;
+        }
+
+        // Step 5: Unrecognized commands
         printf("%s: command not found\n", input);
     }
 
