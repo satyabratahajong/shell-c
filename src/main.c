@@ -3,52 +3,43 @@
 #include <string.h>
 #include <unistd.h>
 
-// Helper array to check supported shell builtins
-const char *builtins[] = {"echo", "exit", "type", NULL};
+const char *VALID_COMMANDS[3] = {"type", "exit", "echo"};
+const int NUM_COMMANDS = 3;
 
-// Check if a given command name is a builtin
-int is_builtin(const char *cmd) {
-    for (int i = 0; builtins[i] != NULL; i++) {
-        if (strcmp(cmd, builtins[i]) == 0) {
-            return 1;
-        }
+void handleType(char *buf) {
+  char *path = strdup(getenv("PATH"));
+  for (int i = 0; i < NUM_COMMANDS; i++) {
+    if (strcmp(buf, VALID_COMMANDS[i]) == 0) {
+      printf("%s is a shell builtin\n", buf);
+      return;
     }
-    return 0;
+  }
+  for (char *p = strtok(path, ":"); p != NULL; p = strtok(NULL, ":")) {
+    char fp[1024];
+    sprintf(fp, "%s/%s", p, buf);
+    if (access(fp, X_OK) == 0) {
+      printf("%s is %s\n", buf, fp);
+      return;
+    }
+  }
+  printf("%s: not found\n", buf);
 }
 
-// Search for command in the directories listed in the PATH environment variable.
-char *get_executable_path(const char *cmd) {
-    char *path_env = getenv("PATH");
-    if (!path_env) {
-        return NULL;
-    }
-
-    char *path_copy = strdup(path_env);
-    if (!path_copy) {
-        return NULL;
-    }
-
-    #ifdef _WIN32
-    const char *delimiter = ";";
-    #else
-    const char *delimiter = ":";
-    #endif
-
-    char *dir = strtok(path_copy, delimiter);
-    static char full_path[1024];
-
-    while (dir != NULL) {
-        snprintf(full_path, sizeof(full_path), "%s/%s", dir, cmd);
-
-        // Check if file exists and has execute permissions
-        if (access(full_path, X_OK) == 0) {
-            free(path_copy);
-            return full_path;
-        }
-
-        dir = strtok(NULL, delimiter);
-    }
-
-    free(path_copy);
-    return NULL;
+int main(int argc, char *argv[]) {
+  setbuf(stdout, NULL);
+  char buf[1024];
+  while (1) {
+    printf("$ ");
+    fgets(buf, sizeof(buf), stdin);
+    buf[strcspn(buf, "\n")] = '\0';
+    if (strcmp(buf, "exit") == 0)
+      break;
+    else if (strncmp(buf, "echo ", 5) == 0)
+      printf("%s\n", buf + 5);
+    else if (strncmp(buf, "type ", 5) == 0)
+      handleType(buf + 5);
+    else
+      printf("%s: command not found\n", buf);
+  }
+  return 0;
 }
