@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // Helper array to check supported shell builtins
 const char *builtins[] = {"echo", "exit", "type", NULL};
@@ -15,58 +16,39 @@ int is_builtin(const char *cmd) {
     return 0;
 }
 
-int main(void) {
-    // Disable output buffering so prompts print immediately
-    setbuf(stdout, NULL);
-    setbuf(stderr, NULL);
-
-    char input[1024];
-
-    while (1) {
-        // Step 1: Print prompt
-        printf("$ ");
-
-        // Step 2: Read input
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            break; // Exit on EOF
-        }
-
-        // Remove trailing newline character (\n)
-        input[strcspn(input, "\n")] = '\0';
-
-        // Ignore empty input lines
-        if (strlen(input) == 0) {
-            continue;
-        }
-
-        // Step 3: Handle 'exit' builtin
-        if (strcmp(input, "exit") == 0 || strcmp(input, "exit 0") == 0) {
-            return 0;
-        }
-
-        // Step 4: Handle 'echo' builtin
-        if (strcmp(input, "echo") == 0) {
-            printf("\n");
-            continue;
-        } else if (strncmp(input, "echo ", 5) == 0) {
-            printf("%s\n", input + 5);
-            continue;
-        }
-
-        // Step 5: Handle 'type' builtin
-        if (strncmp(input, "type ", 5) == 0) {
-            char *arg = input + 5;
-            if (is_builtin(arg)) {
-                printf("%s is a shell builtin\n", arg);
-            } else {
-                printf("%s: not found\n", arg);
-            }
-            continue;
-        }
-
-        // Step 6: Unrecognized commands
-        printf("%s: command not found\n", input);
+// Search for command in the directories listed in the PATH environment variable.
+char *get_executable_path(const char *cmd) {
+    char *path_env = getenv("PATH");
+    if (!path_env) {
+        return NULL;
     }
 
-    return 0;
+    char *path_copy = strdup(path_env);
+    if (!path_copy) {
+        return NULL;
+    }
+
+    #ifdef _WIN32
+    const char *delimiter = ";";
+    #else
+    const char *delimiter = ":";
+    #endif
+
+    char *dir = strtok(path_copy, delimiter);
+    static char full_path[1024];
+
+    while (dir != NULL) {
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir, cmd);
+
+        // Check if file exists and has execute permissions
+        if (access(full_path, X_OK) == 0) {
+            free(path_copy);
+            return full_path;
+        }
+
+        dir = strtok(NULL, delimiter);
+    }
+
+    free(path_copy);
+    return NULL;
 }
