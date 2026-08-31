@@ -1,15 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-int main(int argc, char *argv[]) {
-  // Flush after every printf
-  setbuf(stdout, NULL);
-  printf("$ ");
-  // Wait for user input
-  char input[100];
-  fgets(input, 100, stdin);
-  // Remove the trailing newline
-  input[strlen(input) - 1] = '\0';
-  printf("%s: command not found\n", input);
-  return 0;
+
+int main(void) {
+    // Disable output buffering so prompts and messages print immediately
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
+
+    char input[1024];
+
+    while (1) {
+        // Step 1: Print the prompt
+        printf("$ ");
+
+        // Step 2: Read input from standard input
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break; // Exit loop on EOF (Ctrl+D / end of pipe)
+        }
+
+        // Remove trailing newline character (\n)
+        input[strcspn(input, "\n")] = '\0';
+
+        // Ignore empty input lines (pressing enter on empty prompt)
+        if (strlen(input) == 0) {
+            continue;
+        }
+
+        // Step 3: Print command not found error message
+        printf("%s: command not found\n", input);
+    }
+
+    return 0;
 }
